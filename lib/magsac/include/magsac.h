@@ -1,7 +1,7 @@
 #pragma once
 
 #include <limits>
-#include <opencv2/core/core.hpp>
+#include <cv.h>
 #include <chrono>
 #include <memory>
 #include "model_score.h"
@@ -19,7 +19,7 @@ public:
 	MAGSAC() : 
 		time_limit(std::numeric_limits<double>::max()),
 		desired_fps(-1),
-		iteration_limit(std::numeric_limits<size_t>::max()),
+		iteration_limit(5000),
 		maximum_sigma(10.0),
 		apply_post_processing(true),
 		mininum_iteration_number(50),
