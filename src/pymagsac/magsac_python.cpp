@@ -24,7 +24,9 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
     magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
     magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
     magsac.setIterationLimit(max_iters);
-    
+    magsac.setTerminationCriterion(MAGSAC<FundamentalMatrixEstimator, FundamentalMatrix>::TerminationCriterion::RansacCriterion,
+        sigma_th); // Use the standard RANSAC termination criterion since the MAGSAC one is too pessimistic and, thus, runs too long sometimes
+     
     int num_tents = srcPts.size()/2;
     cv::Mat points(num_tents, 6, CV_64F);
     int iterations = 0;
@@ -80,6 +82,8 @@ int findHomography_(std::vector<double>& srcPts,
     magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
     magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
     magsac.setIterationLimit(max_iters);
+    magsac.setTerminationCriterion(MAGSAC<RobustHomographyEstimator, Homography>::TerminationCriterion::RansacCriterion,
+        sigma_th); // Use the standard RANSAC termination criterion since the MAGSAC one is too pessimistic and, thus, runs too long sometimes
     
     int num_tents = srcPts.size()/2;
     cv::Mat points(num_tents, 6, CV_64F);

@@ -14,6 +14,8 @@ template <class ModelEstimator, class Model>
 class MAGSAC  
 {
 public:
+	enum TerminationCriterion { RansacCriterion, MagsacCriterion };
+
 	MAGSAC() : 
 		time_limit(std::numeric_limits<double>::max()),
 		desired_fps(-1),
@@ -26,7 +28,8 @@ public:
 		interrupting_threshold(1.0),
 		last_iteration_number(0),
 		log_confidence(0),
-		point_number(0)
+		point_number(0),
+		criterion(TerminationCriterion::MagsacCriterion)
 	{ 
 	}
 
@@ -81,9 +84,15 @@ public:
 		mininum_iteration_number = mininum_iteration_number_;
 	}
 
+	void setTerminationCriterion(
+		const TerminationCriterion criterion_,
+		const double ransac_criterion_threshold_ = -1);
+
 	void setFPS(int fps_) { desired_fps = fps_; time_limit = fps_ <= 0 ? std::numeric_limits<double>::max() : 1.0 / fps_; }
 
 protected:
+	TerminationCriterion criterion; // The termination criterion use for determining when to stop.
+	double criterion_threshold; // If the user choose to use the RANSAC criterion instead of the MAGSAC one, a threshold is needed to calculate the inlier ratio
 	size_t iteration_limit; // Maximum number of iterations allowed
 	size_t mininum_iteration_number; // Minimum number of iteration before terminating
 	double reference_inlier_outlier_threshold; // An inlier-outlier threshold to speed up the procedure by interrupting sigma-consensus if needed
@@ -126,6 +135,22 @@ protected:
 		const ModelEstimator& estimator_,
 		const ModelScore& best_score_);
 };
+
+template <class ModelEstimator, class Model>
+void MAGSAC<ModelEstimator, Model>::setTerminationCriterion(
+	const TerminationCriterion criterion_,
+	const double ransac_criterion_threshold_)
+{
+	if (criterion_ == TerminationCriterion::RansacCriterion)
+	{
+		if (ransac_criterion_threshold_ > 0)
+		{
+			criterion_threshold = ransac_criterion_threshold_;
+			criterion = criterion_;
+		}
+	} else
+		criterion = criterion_;
+}
 
 template <class ModelEstimator, class Model>
 void MAGSAC<ModelEstimator, Model>::run(
@@ -569,10 +594,32 @@ void MAGSAC<ModelEstimator, Model>::sigmaConsensus(
 			marginalized_iteration_number, // The marginalized inlier ratio
 			score_.J); // The marginalized score
 		
-		iterations = marginalized_iteration_number; 
-		if (iterations < 0 || std::isnan(iterations))
-			iterations = 1e5;
-		last_iteration_number = static_cast<int>(round(iterations)); 
+		// Use the proposed MAGSAC criterion which marginalizes over the possible sigma values
+		// Note: it will most probably be a higher value than what the standard RANSAC criterion
+		// implies. The standard RANSAC criterion assumes no noise and, thus, is too optimistic
+		// in practice. 
+		if (criterion == TerminationCriterion::MagsacCriterion)
+		{
+			iterations = marginalized_iteration_number; 
+			if (iterations < 0 || std::isnan(iterations))
+				iterations = 1e5;
+			last_iteration_number = static_cast<int>(round(iterations)); 
+		} else // Use the RANSAC criterion if needed
+		{
+			const double criterion_threshold_mod = criterion_threshold / 3.64; // Modify the threshold since the residuals are modified as well
+			int inlier_number = 0;			
+			for (const auto &residual : all_residuals)
+			{		
+				if (residual.first < criterion_threshold_mod)
+					++inlier_number;
+				else // The residuals are in increasing order. Therefore, we can break if is is greater than the threshold
+					break;
+			}
+			// Calculate the RANSAC termination criterion
+			last_iteration_number = log_confidence / log(1.0 - pow(inlier_number / Nd, M));
+			if (last_iteration_number < 0)
+				last_iteration_number = 1e5;
+		}
 		refined_model_ = sigma_models[0];
 	}
 }
@@ -645,7 +692,6 @@ void MAGSAC<ModelEstimator, Model>::getSigmaScore(
 	}
 
 	score_ = 0;
-	marginalized_iteration_number_ = 0.0;
 	for (auto i = 0; i < partition_number - 1; ++i)
 	{
 		score_ += probabilities[i];
