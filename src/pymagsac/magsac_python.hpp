@@ -11,7 +11,7 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
                            double sigma_th = 1.0,
                            double sigma_max = 3.0,
                            double conf = 0.99,
-                           int max_iters = 20000,
+                           int max_iters = 10000,
                            int partition_num = 5);
 
 
@@ -23,6 +23,6 @@ int findHomography_(std::vector<double>& srcPts,
                     double sigma_th = 1.0,
                     double sigma_max = 3.0,
                     double conf = 0.99,
-                    int max_iters = 20000,
+                    int max_iters = 10000,
                     int partition_num = 5);
 
