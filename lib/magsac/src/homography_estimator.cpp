@@ -67,11 +67,13 @@ public:
 		// TODO: replace it by a faster algorithm
 		cv::Mat H = findHomography(points_src, points_dst);
 		H.convertTo(H, CV_64F); // Convert to double because OpenCV returns float matrix
-
+        
+        
 		// If the estimation failed, there are no rows in H 
 		if (H.rows == 0)
 			return false;
 
+           
 		Homography model(H); // Initilize the model
 		models->emplace_back(model);
 		return true;
@@ -349,8 +351,40 @@ public:
 	// check or some other verification of the model structure.
 	bool validModel(const Model& model) const
 	{ 
-		return model.descriptor.rows == 3 && 
-			model.descriptor.cols == 3;
+        bool isgood = model.descriptor.rows == 3 && model.descriptor.cols == 3;
+        if (!isgood) return isgood;
+        //DM: reject bad Hs
+        double det = cv::determinant(model.descriptor);
+        double tol  = pow(0.001*sqrt(cv::sum( model.descriptor.mul(model.descriptor) )[0]),3); ;
+        
+        if (fabs(det/tol) < 10e-2) return false; /* reject H's close to singular */
+            
+        return isgood;
 	}
 
+	bool validModelWithData(const cv::Mat data_,
+                            const Model& model_) const
+    {
+        bool out = false;
+        //DM: we will perform symmetrical transfer test
+        cv::Mat h1inv(3,3,CV_64F);
+        cv::invert(model_.descriptor,h1inv,cv::DECOMP_LU);
+        int number_good = 0;
+        const size_t N = data_.rows;
+        for (int pt_idx = 0; pt_idx < N; pt_idx++) {
+            cv::Mat pt = data_.row(pt_idx);
+            cv::Mat pt_rev(1, 6, CV_64F);
+
+            pt_rev.at<double>(0,0) = data_.row(pt_idx).at<double>(3);
+            pt_rev.at<double>(0,1) = data_.row(pt_idx).at<double>(4);
+            pt_rev.at<double>(0,2) = data_.row(pt_idx).at<double>(5);
+            pt_rev.at<double>(0,3) = data_.row(pt_idx).at<double>(0);
+            pt_rev.at<double>(0,4) = data_.row(pt_idx).at<double>(1);
+            pt_rev.at<double>(0,5) = data_.row(pt_idx).at<double>(2);
+            
+            double residual = error(pt_rev.row(0), h1inv);
+            number_good+= (residual<=10.0); 
+        };
+        return number_good > 10;
+    }
 };

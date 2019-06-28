@@ -150,8 +150,8 @@ PYBIND11_PLUGIN(pymagsac) {
           py::arg("x2y2"),
           py::arg("sigma_th") = 1.0,
           py::arg("conf") = 0.99,
-          py::arg("max_iters") = 20000,
-          py::arg("partition_num") = 5);
+          py::arg("max_iters") = 10000,
+          py::arg("partition_num") = 2);
     
 
   m.def("findHomography", &findHomography, R"doc(some doc)doc",
@@ -159,8 +159,8 @@ PYBIND11_PLUGIN(pymagsac) {
         py::arg("x2y2"),
         py::arg("sigma_th") = 1.0,
         py::arg("conf") = 0.99,
-        py::arg("max_iters") = 20000,
-        py::arg("partition_num") = 5); 
+        py::arg("max_iters") = 10000,
+        py::arg("partition_num") = 2); 
 
 
   return m.ptr();

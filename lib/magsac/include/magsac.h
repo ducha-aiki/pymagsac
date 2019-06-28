@@ -9,6 +9,9 @@
 #ifdef _WIN32 
 	#include <ppl.h>
 #endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 template <class ModelEstimator, class Model>
 class MAGSAC  
@@ -29,6 +32,7 @@ public:
 		last_iteration_number(0),
 		log_confidence(0),
 		point_number(0),
+		additional_geom_check(true),
 		criterion(TerminationCriterion::MagsacCriterion)
 	{ 
 	}
@@ -53,7 +57,12 @@ public:
 	{
 		maximum_sigma = maximum_sigma_;
 	}
-
+	
+	void setSigmaMax(const bool additional_geom_check_) 
+    {
+        additional_geom_check = additional_geom_check_;
+    }
+ 
 	void setReferenceThreshold(const double threshold_)
 	{
 		reference_inlier_outlier_threshold = threshold_;
@@ -101,6 +110,7 @@ protected:
 	double time_limit; // A time limit after the algorithm is interrupted
 	int desired_fps; // The desired FPS (TODO: not tested with MAGSAC)
 	bool apply_post_processing; // Decides if the post-processing step should be applied
+	bool additional_geom_check; //If we want to perform some model-specific checks
 	int point_number; // The current point number
 	int last_iteration_number; // The iteration number implied by the last run of sigma-consensus
 	double log_confidence; // The logarithm of the required confidence
@@ -134,6 +144,14 @@ protected:
 		ModelScore& score_,
 		const ModelEstimator& estimator_,
 		const ModelScore& best_score_);
+    
+    bool additionalCheck(
+        const cv::Mat& points_,
+        const Model& model_,
+        const ModelEstimator& estimator_){
+        return estimator_.validModelWithData(points_,model_);
+        }
+        ;
 };
 
 template <class ModelEstimator, class Model>
@@ -151,6 +169,8 @@ void MAGSAC<ModelEstimator, Model>::setTerminationCriterion(
 	} else
 		criterion = criterion_;
 }
+
+
 
 template <class ModelEstimator, class Model>
 void MAGSAC<ModelEstimator, Model>::run(
@@ -470,7 +490,17 @@ void MAGSAC<ModelEstimator, Model>::sigmaConsensus(
 
 	score_.I = points_close;
 	const int Ni = all_residuals.size();
-
+    //DM Additional check
+    if (additional_geom_check){
+        const bool model_is_good = additionalCheck(points_,model_, estimator_) ;
+      if (!model_is_good){
+        return;        
+        }
+    }
+    
+    //
+    
+    
 	// Sorting the distances
 #ifdef _WIN32 
 	concurrency::parallel_sort(all_residuals.begin(), all_residuals.end(), cmp);
@@ -503,6 +533,7 @@ void MAGSAC<ModelEstimator, Model>::sigmaConsensus(
 #ifdef _WIN32 
 	concurrency::parallel_for(0, static_cast<int>(core_number), [&](int process)
 #else
+#pragma omp parallel for schedule (dynamic,1)
 	for (auto process = 0; process < core_number; ++process)
 #endif
 	{

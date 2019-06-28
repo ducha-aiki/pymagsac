@@ -97,5 +97,10 @@ public:
 	// Enable a quick check to see if the model is valid. This can be a geometric
 	// check or some other verification of the model structure.
 	virtual bool validModel(const Model& model_) const { return true; }
+	
+	// Enable a not so quick with data points check to see if the model is valid. This can be a geometric
+	// check or some other verification of the model structure.
+	virtual bool validModelWithData(const cv::Mat data_, const Model& model_) const { return true; }
+	
 };
 
