@@ -45,7 +45,7 @@ py::tuple findFundamentalMatrix(py::array_t<double>  x1y1_,
     std::vector<double> F(9);
     std::vector<bool> inliers(NUM_TENTS);
     
-    findFundamentalMatrix_(x1y1,
+    int num_inl = findFundamentalMatrix_(x1y1,
                            x2y2,
                            inliers,
                            F,
@@ -55,20 +55,21 @@ py::tuple findFundamentalMatrix(py::array_t<double>  x1y1_,
                            max_iters,
                            partition_num);
     
-    py::array_t<double> F_ = py::array_t<double>({3,3});
-    py::buffer_info buf2 = F_.request();
-    double *ptr2 = (double *)buf2.ptr;
-    for (size_t i = 0; i < 9; i++)
-        ptr2[i] = F[i];
-    
     py::array_t<bool> inliers_ = py::array_t<bool>(NUM_TENTS);
     py::buffer_info buf3 = inliers_.request();
     bool *ptr3 = (bool *)buf3.ptr;
     for (size_t i = 0; i < NUM_TENTS; i++)
         ptr3[i] = inliers[i];   
-    
+    if (num_inl  == 0){
+        return py::make_tuple(pybind11::cast<pybind11::none>(Py_None),inliers_);
+    }
+    py::array_t<double> F_ = py::array_t<double>({3,3});
+    py::buffer_info buf2 = F_.request();
+    double *ptr2 = (double *)buf2.ptr;
+    for (size_t i = 0; i < 9; i++)
+        ptr2[i] = F[i];
     return py::make_tuple(F_,inliers_);
-                                }
+}
                                 
 py::tuple findHomography(py::array_t<double>  x1y1_,
                          py::array_t<double>  x2y2_,
@@ -107,7 +108,7 @@ py::tuple findHomography(py::array_t<double>  x1y1_,
     std::vector<double> H(9);
     std::vector<bool> inliers(NUM_TENTS);
     
-    findHomography_(x1y1,
+    int num_inl = findHomography_(x1y1,
                     x2y2,
                     inliers,
                     H,
@@ -117,17 +118,20 @@ py::tuple findHomography(py::array_t<double>  x1y1_,
                     max_iters,
                     partition_num);
     
-    py::array_t<double> H_ = py::array_t<double>({3,3});
-    py::buffer_info buf2 = H_.request();
-    double *ptr2 = (double *)buf2.ptr;
-    for (size_t i = 0; i < 9; i++)
-        ptr2[i] = H[i];
-    
     py::array_t<bool> inliers_ = py::array_t<bool>(NUM_TENTS);
     py::buffer_info buf3 = inliers_.request();
     bool *ptr3 = (bool *)buf3.ptr;
     for (size_t i = 0; i < NUM_TENTS; i++)
         ptr3[i] = inliers[i];   
+    
+    if (num_inl  == 0){
+        return py::make_tuple(pybind11::cast<pybind11::none>(Py_None),inliers_);
+    }
+    py::array_t<double> H_ = py::array_t<double>({3,3});
+    py::buffer_info buf2 = H_.request();
+    double *ptr2 = (double *)buf2.ptr;
+    for (size_t i = 0; i < 9; i++)
+        ptr2[i] = H[i];
     
     return py::make_tuple(H_,inliers_);
                          }

@@ -352,20 +352,20 @@ public:
 	bool validModel(const Model& model) const
 	{ 
         bool isgood = model.descriptor.rows == 3 && model.descriptor.cols == 3;
-        if (!isgood) return isgood;
+        if (!isgood) return false;
         //DM: reject bad Hs
         double det = cv::determinant(model.descriptor);
         double tol  = pow(0.001*sqrt(cv::sum( model.descriptor.mul(model.descriptor) )[0]),3); ;
         
         if (fabs(det/tol) < 10e-2) return false; /* reject H's close to singular */
             
-        return isgood;
+        return true;
 	}
 
 	bool validModelWithData(const cv::Mat data_,
-                            const Model& model_) const
+                            const Model& model_,
+                            const int th) const
     {
-        bool out = false;
         //DM: we will perform symmetrical transfer test
         cv::Mat h1inv(3,3,CV_64F);
         cv::invert(model_.descriptor,h1inv,cv::DECOMP_LU);
@@ -383,8 +383,8 @@ public:
             pt_rev.at<double>(0,5) = data_.row(pt_idx).at<double>(2);
             
             double residual = error(pt_rev.row(0), h1inv);
-            number_good+= (residual<=10.0); 
+            number_good+= (residual<=15.0); //Hardcoded, but very loose threshold in 15 px;
         };
-        return number_good > 10;
+        return number_good >= th;
     }
 };

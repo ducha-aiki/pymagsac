@@ -39,7 +39,7 @@ public:
 
 	~MAGSAC() {}
 
-	void run(
+	bool run(
 		const cv::Mat &points_, 
 		const double confidence_,
 		ModelEstimator& estimator_,
@@ -173,7 +173,7 @@ void MAGSAC<ModelEstimator, Model>::setTerminationCriterion(
 
 
 template <class ModelEstimator, class Model>
-void MAGSAC<ModelEstimator, Model>::run(
+bool MAGSAC<ModelEstimator, Model>::run(
 	const cv::Mat& points_,
 	const double confidence_,
 	ModelEstimator& estimator_,
@@ -221,9 +221,10 @@ void MAGSAC<ModelEstimator, Model>::run(
 			// Estimate the model from the minimal sample
  			if (estimator_.estimateModel(points_, 
 				minimal_sample.get(), 
-				&models))
-				break; 
-		}                 
+				&models)) {
+				if (estimator_.validModel(models.back())) break; 
+			};                
+		};
 
 		// Select the so-far-the-best from the estimated models
 		for (const auto &model : models)
@@ -281,6 +282,7 @@ void MAGSAC<ModelEstimator, Model>::run(
 
 	obtained_model_ = so_far_the_best_model;
 	iteration_number_ = iteration;
+	return estimator_.validModel(obtained_model_);
 }
 
 template <class ModelEstimator, class Model>
@@ -490,15 +492,6 @@ void MAGSAC<ModelEstimator, Model>::sigmaConsensus(
 
 	score_.I = points_close;
 	const int Ni = all_residuals.size();
-    //DM Additional check
-    if (additional_geom_check){
-        const bool model_is_good = additionalCheck(points_,model_, estimator_) ;
-      if (!model_is_good){
-        return;        
-        }
-    }
-    
-    //
     
     
 	// Sorting the distances
@@ -613,10 +606,33 @@ void MAGSAC<ModelEstimator, Model>::sigmaConsensus(
 		static_cast<int>(sigma_inliers.size()), // The number of used points
 		&sigma_models)) // The estimated models
 		return;
+    
+    
+    //
 
 	if (sigma_models.size() == 1 && // If only a single model is estimated
 		estimator_.validModel(sigma_models[0])) // and it is valid
 	{
+
+        //DM Additional check
+		if (additional_geom_check){
+
+		   int N_INL = static_cast<int>(sigma_inliers.size());
+		   cv::Mat passed_points(N_INL,6,CV_64F);
+		   for (int pp_idx = 0; pp_idx < N_INL; pp_idx++){
+				 int idx1 = sigma_inliers[pp_idx];
+				passed_points.at<double>(pp_idx,0) = points_.at<double>(idx1,0);
+				passed_points.at<double>(pp_idx,1) = points_.at<double>(idx1,1);
+				passed_points.at<double>(pp_idx,2) = points_.at<double>(idx1,2);
+				passed_points.at<double>(pp_idx,3) = points_.at<double>(idx1,3);
+				passed_points.at<double>(pp_idx,4) = points_.at<double>(idx1,4);
+				passed_points.at<double>(pp_idx,5) = points_.at<double>(idx1,5);
+				};
+			int th = std::max(10, (int)(N_INL/2)); // We want to at least this points to survive check
+			if (!estimator_.validModelWithData(passed_points, sigma_models[0], th)){
+			   return;        
+			}
+		} 
 		// Calculate the score of the model and the implied iteration number
 		double marginalized_iteration_number;
 		getSigmaScore(points_, // All the input points

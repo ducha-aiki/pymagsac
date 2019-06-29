@@ -39,13 +39,24 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
         points.at<double>(i, 4) = dstPts[2*i + 1];
         points.at<double>(i, 5) = 1;
     }
-    magsac.run(points, // The data points
+    bool success = magsac.run(points, // The data points
                conf, // The required confidence in the results
                estimator, // The used estimator
                model, // The estimated model
                iterations); // The number of iterations
-    
     inliers.resize(num_tents);
+    if (!success) {
+       for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
+           inliers[pt_idx] = false;
+       }
+	   F.resize(9);
+	   for (int i = 0; i < 3; i++){
+		for (int j = 0; j < 3; j++){
+	     F[i*3+j] = 0;
+		  }
+		}
+		return 0;
+    }
     int num_inliers = 0;
     for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
         const int is_inlier = estimator.error(points.row(pt_idx), model) <= sigma_th;
@@ -97,13 +108,26 @@ int findHomography_(std::vector<double>& srcPts,
         points.at<double>(i, 4) = dstPts[2*i + 1];
         points.at<double>(i, 5) = 1;
     }
-    magsac.run(points, // The data points
+    bool success = magsac.run(points, // The data points
                conf, // The required confidence in the results
                estimator, // The used estimator
                model, // The estimated model
                iterations); // The number of iterations
+   inliers.resize(num_tents);
+   if (!success) {
+       for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
+           inliers[pt_idx] = false;
+       }
+       H.resize(9);
+       for (int i = 0; i < 3; i++){
+        for (int j = 0; j < 3; j++){
+         H[i*3+j] = 0;
+          }
+        }   
+        return 0;
+    }
     
-    inliers.resize(num_tents);
+   
     int num_inliers = 0;
     for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
         const int is_inlier = estimator.error(points.row(pt_idx), model) <= sigma_th;
