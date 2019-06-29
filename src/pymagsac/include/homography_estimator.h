@@ -1,3 +1,5 @@
+#ifndef HOMOGRAPHY_ESTIMATOR_H
+#define HOMOGRAPHY_ESTIMATOR_H
 #include <iostream>
 #include <math.h>
 #include <chrono>
@@ -388,3 +390,4 @@ public:
         return number_good >= th;
     }
 };
+#endif // HOMOGRAPHY_ESTIMATOR_H

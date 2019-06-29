@@ -1,7 +1,5 @@
 #include "magsac_python.hpp"
 #include "magsac.h"
-#include "fundamental_estimator.cpp"
-#include "homography_estimator.cpp"
 #include <thread>
 
 

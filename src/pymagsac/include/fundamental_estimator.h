@@ -1,3 +1,5 @@
+#ifndef FUNDAMENTAL_ESTIMATOR_H
+#define FUNDAMENTAL_ESTIMATOR_H
 #include <iostream>
 #include <math.h>
 #include <chrono>
@@ -555,3 +557,4 @@ public:
 		return true;
 	}
 };
+#endif // FUNDAMENTAL_ESTIMATOR_H

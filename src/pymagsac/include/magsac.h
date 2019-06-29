@@ -5,6 +5,8 @@
 #include <chrono>
 #include <memory>
 #include "model_score.h"
+#include "fundamental_estimator.h"
+#include "homography_estimator.h"
 
 #ifdef _WIN32 
 	#include <ppl.h>
@@ -12,6 +14,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
 
 template <class ModelEstimator, class Model>
 class MAGSAC  
