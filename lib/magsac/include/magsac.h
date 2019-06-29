@@ -494,6 +494,25 @@ void MAGSAC<ModelEstimator, Model>::sigmaConsensus(
 	const int Ni = all_residuals.size();
     
     
+	//DM Additional check
+	if (additional_geom_check){
+
+	   int N_INL = static_cast<int>(all_residuals.size());
+	   cv::Mat passed_points(N_INL,6,CV_64F);
+	   for (int pp_idx = 0; pp_idx < N_INL; pp_idx++){
+			 int idx1 = all_residuals[pp_idx].second;
+			passed_points.at<double>(pp_idx,0) = points_.at<double>(idx1,0);
+			passed_points.at<double>(pp_idx,1) = points_.at<double>(idx1,1);
+			passed_points.at<double>(pp_idx,2) = points_.at<double>(idx1,2);
+			passed_points.at<double>(pp_idx,3) = points_.at<double>(idx1,3);
+			passed_points.at<double>(pp_idx,4) = points_.at<double>(idx1,4);
+			passed_points.at<double>(pp_idx,5) = points_.at<double>(idx1,5);
+			};
+		int th = std::max(10, (int)(N_INL/2)); // We want to at least this points to survive check
+		if (!estimator_.validModelWithData(passed_points, model_, th)){
+		   return;        
+		}
+	} 
 	// Sorting the distances
 #ifdef _WIN32 
 	concurrency::parallel_sort(all_residuals.begin(), all_residuals.end(), cmp);
@@ -614,25 +633,6 @@ void MAGSAC<ModelEstimator, Model>::sigmaConsensus(
 		estimator_.validModel(sigma_models[0])) // and it is valid
 	{
 
-        //DM Additional check
-		if (additional_geom_check){
-
-		   int N_INL = static_cast<int>(sigma_inliers.size());
-		   cv::Mat passed_points(N_INL,6,CV_64F);
-		   for (int pp_idx = 0; pp_idx < N_INL; pp_idx++){
-				 int idx1 = sigma_inliers[pp_idx];
-				passed_points.at<double>(pp_idx,0) = points_.at<double>(idx1,0);
-				passed_points.at<double>(pp_idx,1) = points_.at<double>(idx1,1);
-				passed_points.at<double>(pp_idx,2) = points_.at<double>(idx1,2);
-				passed_points.at<double>(pp_idx,3) = points_.at<double>(idx1,3);
-				passed_points.at<double>(pp_idx,4) = points_.at<double>(idx1,4);
-				passed_points.at<double>(pp_idx,5) = points_.at<double>(idx1,5);
-				};
-			int th = std::max(10, (int)(N_INL/2)); // We want to at least this points to survive check
-			if (!estimator_.validModelWithData(passed_points, sigma_models[0], th)){
-			   return;        
-			}
-		} 
 		// Calculate the score of the model and the implied iteration number
 		double marginalized_iteration_number;
 		getSigmaScore(points_, // All the input points
