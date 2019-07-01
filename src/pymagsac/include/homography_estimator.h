@@ -69,6 +69,7 @@ public:
 			smpl = sample[i] * offset;
 			x1 = data_ptr[smpl];
 			y1 = data_ptr[smpl + 1];
+<<<<<<< HEAD
 
 			x2 = data_ptr[smpl + 3];
 			y2 = data_ptr[smpl + 4];
@@ -97,6 +98,39 @@ public:
 		cv::Mat h = coefficients.inv() * inhomogeneous;
 		h.push_back(1.0);
 		cv::Mat H(3, 3, CV_64F, h.data);
+=======
+
+			x2 = data_ptr[smpl + 3];
+			y2 = data_ptr[smpl + 4];
+
+			(*A_ptr++) = -x1;
+			(*A_ptr++) = -y1;
+			(*A_ptr++) = -1;
+			(*A_ptr++) = 0;
+			(*A_ptr++) = 0;
+			(*A_ptr++) = 0;
+			(*A_ptr++) = x2 * x1;
+			(*A_ptr++) = x2 * y1;
+			(*b_ptr++) = -x2;
+
+			(*A_ptr++) = 0;
+			(*A_ptr++) = 0;
+			(*A_ptr++) = 0;
+			(*A_ptr++) = -x1;
+			(*A_ptr++) = -y1;
+			(*A_ptr++) = -1;
+			(*A_ptr++) = y2 * x1;
+			(*A_ptr++) = y2 * y1;
+			(*b_ptr++) = -y2;
+		}
+
+		cv::Mat h = coefficients.inv() * inhomogeneous;
+		cv::Mat H(3, 3, CV_64F);
+
+		memcpy(H.data, h.data, sizeof(double) * 8);
+		H.at<double>(2,2) = 1;
+
+>>>>>>> refs/remotes/origin/master
 		Homography model(H); // Initilize the model
 		models->emplace_back(model);
 		return true;
