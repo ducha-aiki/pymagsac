@@ -56,15 +56,20 @@ public:
 		return score_1_.J < score_2_.J; 
 	}
 	
+	void setInterruptingThreshold(const double interrupting_threshold_)
+	{
+		interrupting_threshold = interrupting_threshold_;
+	}
+
 	void setSigmaMax(const double maximum_sigma_) 
 	{
 		maximum_sigma = maximum_sigma_;
 	}
 	
 	void setSigmaMax(const bool additional_geom_check_) 
-    {
+    	{
         additional_geom_check = additional_geom_check_;
-    }
+    	}
  
 	void setReferenceThreshold(const double threshold_)
 	{
