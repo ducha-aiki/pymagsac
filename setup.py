@@ -93,7 +93,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='pymagsac',
-    version='0.1',
+    version='0.2',
     author='Daniel Barath, Dmytro Mishkin',
     author_email='barath.daniel@sztaki.mta.hu',
     description='MAGSAC: RANSAC for F and H',

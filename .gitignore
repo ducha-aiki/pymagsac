@@ -23,6 +23,8 @@ __pycache__
 # Precompiled Headers
 *.gch
 *.pch
+*CMakeLists.txt.user
+*.ipynb_checkpoints
 
 # Compiled Dynamic libraries
 *.so

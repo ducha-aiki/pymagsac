@@ -4,20 +4,29 @@ project(pymagsac)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_FLAGS "-fpermissive")
 
 # Generate python module
 add_subdirectory(lib/pybind11)
 
-find_package(OpenCV 3.4)
+find_package(OpenCV)
 if (OPENCV_FOUND)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenCV_CXX_FLAGS}")
 endif (OPENCV_FOUND)
+
+# ==============================================================================
+# Find Eigen
+# ==============================================================================
+find_package(Eigen3 REQUIRED)
+set(EIGEN_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
+
 
 FIND_PACKAGE(OpenMP)
 if (OPENMP_FOUND)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_CXX_FLAGS}")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  add_definitions(-DUSE_OPENMP)
 endif (OPENMP_FOUND)
 
 SET (CMAKE_BUILD_TYPE "RELEASE")
@@ -32,6 +41,8 @@ ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 SET(SOURCE_DIR "src/pymagsac")
 # Tell cmake that headers are in alse in source_dir
 include_directories(${SOURCE_DIR}/include)
+include_directories(${SOURCE_DIR}/graph-cut-ransac/include)
+
 
 # Set source files to be added to the library
 file(GLOB_RECURSE SRCS_MAGSAC 
@@ -41,4 +52,4 @@ file(GLOB_RECURSE SRCS_MAGSAC
 
 
 pybind11_add_module(pymagsac ${SRCS_MAGSAC} )
-target_link_libraries(pymagsac PRIVATE  ${OpenCV_LIBS})
+target_link_libraries(pymagsac PRIVATE  ${OpenCV_LIBS} Eigen3::Eigen)
