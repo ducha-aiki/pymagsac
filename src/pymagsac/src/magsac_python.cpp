@@ -41,14 +41,14 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
     }
     gcransac::sampler::UniformSampler main_sampler(&points);
 
-     magsac.run(points, // The data points
+    bool success =  magsac.run(points, // The data points
                               conf, // The required confidence in the results
                               estimator, // The used estimator
                               main_sampler, // The sampler used for selecting minimal samples in each iteration
                               model, // The estimated model
                               max_iters); // The number of iterations
     inliers.resize(num_tents);
-    /*if (!success) {
+    if (!success) {
         for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
             inliers[pt_idx] = false;
         }
@@ -60,7 +60,6 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
         }
         return 0;
     }
-    */
     int num_inliers = 0;
     for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
         const int is_inlier = estimator.residual(points.row(pt_idx), model.descriptor) <= sigma_max;
@@ -107,14 +106,14 @@ int findHomography_(std::vector<double>& srcPts,
     }
     gcransac::sampler::UniformSampler main_sampler(&points);
 
-    magsac.run(points, // The data points
+    bool success = magsac.run(points, // The data points
                               conf, // The required confidence in the results
                               estimator, // The used estimator
                               main_sampler, // The sampler used for selecting minimal samples in each iteration
                               model, // The estimated model
                               max_iters); // The number of iterations
     inliers.resize(num_tents);
-    /*if (!success) {
+    if (!success) {
         for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
             inliers[pt_idx] = false;
         }
@@ -126,7 +125,6 @@ int findHomography_(std::vector<double>& srcPts,
         }
         return 0;
     }
-    */
 
     int num_inliers = 0;
     for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
