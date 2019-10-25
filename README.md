@@ -1,7 +1,9 @@
 # pymagsac
 
 This repository contains an Python wrapper of [MAGSAC](https://arxiv.org/abs/1803.07469.pdf). 
-Here Daniel will write, how cool MAGSAC is
+Daniel Barath, Jana Noskova and Jiri Matas; MAGSAC: Marginalizing sample consensus, CVPR 2019
+
+https://github.com/danini/magsac -- main repo. 
 
 # Installation
 
