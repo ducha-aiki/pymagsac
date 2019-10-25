@@ -236,20 +236,20 @@ bool MAGSAC<DatumType, ModelEstimator>::run(
 	}
 	
 	// Apply sigma-consensus as a post processing step if needed and the estimated model is valid
-	if (apply_post_processing &&
-		estimator_.isValidModel(so_far_the_best_model,
-			points_,
-			std::vector<size_t>(),
-			reference_inlier_outlier_threshold))
-	{
-		gcransac::Model refined_model;
-		/*if (postProcessing(points_,
-			so_far_the_best_model,
-			refined_model,
-			so_far_the_best_score,
-			estimator_))
-			so_far_the_best_model = refined_model;*/
-	}
+//	if (apply_post_processing &&
+//		estimator_.isValidModel(so_far_the_best_model,
+//			points_,
+//			std::vector<size_t>(),
+//			reference_inlier_outlier_threshold))
+//	{
+//		gcransac::Model refined_model;
+//		/*if (postProcessing(points_,
+//			so_far_the_best_model,
+//			refined_model,
+//			so_far_the_best_score,
+//			estimator_))
+//			so_far_the_best_model = refined_model;*/
+//	}
 	
 	obtained_model_ = so_far_the_best_model;
 	iteration_number_ = iteration;
