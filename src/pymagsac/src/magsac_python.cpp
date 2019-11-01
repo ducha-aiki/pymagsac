@@ -25,7 +25,7 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
     MAGSAC<cv::Mat, magsac::utils::DefaultFundamentalMatrixEstimator> magsac;
     magsac.setMaximumThreshold(sigma_max); // The maximum noise scale sigma allowed
     //magsac.setInterruptingThreshold(sigma_th / 3.0f); // The threshold used for speeding up the procedure
-    magsac.setCoreNumber(partition_num); // The number of cores used to speed up sigma-consensus
+    magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
     magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
     magsac.setIterationLimit(max_iters);
     //magsac.setTerminationCriterion(MAGSAC<FundamentalMatrixEstimator, FundamentalMatrix>::TerminationCriterion::RansacCriterion,
