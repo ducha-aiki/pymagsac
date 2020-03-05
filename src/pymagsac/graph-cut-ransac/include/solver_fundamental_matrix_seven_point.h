@@ -32,9 +32,10 @@
 // Please contact the author of this library if you have any questions.
 // Author: Daniel Barath (barath.daniel@sztaki.mta.hu)
 #pragma once
-
+#include <opencv2/core.hpp>
 #include "solver_engine.h"
 #include "fundamental_estimator.h"
+#include "ImathRoots.h"
 
 namespace gcransac
 {
@@ -85,7 +86,9 @@ namespace gcransac
 				Eigen::MatrixXd coefficients(sample_number_, 9);
 				const double *data_ptr = reinterpret_cast<double *>(data_.data);
 				const int cols = data_.cols;
-				double c[4];
+				double c[4], r[3] = {0};
+				Mat coeffs( 1, 4, CV_64F, c );
+				Mat roots( 1, 3, CV_64F, r );
 				double t0, t1, t2;
 				int i, n;
 
@@ -168,9 +171,9 @@ namespace gcransac
 				t1 = f2[3] * f2[8] - f2[5] * f2[6];
 				t2 = f2[3] * f2[7] - f2[4] * f2[6];
 
-				c[0] = f2[0] * t0 - f2[1] * t1 + f2[2] * t2;
+				c[3] = f2[0] * t0 - f2[1] * t1 + f2[2] * t2;
 
-				c[1] = f1[0] * t0 - f1[1] * t1 + f1[2] * t2 -
+				c[2] = f1[0] * t0 - f1[1] * t1 + f1[2] * t2 -
 					f1[3] * (f2[1] * f2[8] - f2[2] * f2[7]) +
 					f1[4] * (f2[0] * f2[8] - f2[2] * f2[6]) -
 					f1[5] * (f2[0] * f2[7] - f2[1] * f2[6]) +
@@ -182,7 +185,7 @@ namespace gcransac
 				t1 = f1[3] * f1[8] - f1[5] * f1[6];
 				t2 = f1[3] * f1[7] - f1[4] * f1[6];
 
-				c[2] = f2[0] * t0 - f2[1] * t1 + f2[2] * t2 -
+				c[1] = f2[0] * t0 - f2[1] * t1 + f2[2] * t2 -
 					f2[3] * (f1[1] * f1[8] - f1[2] * f1[7]) +
 					f2[4] * (f1[0] * f1[8] - f1[2] * f1[6]) -
 					f2[5] * (f1[0] * f1[7] - f1[1] * f1[6]) +
@@ -190,20 +193,17 @@ namespace gcransac
 					f2[7] * (f1[0] * f1[5] - f1[2] * f1[3]) +
 					f2[8] * (f1[0] * f1[4] - f1[1] * f1[3]);
 
-				c[3] = f1[0] * t0 - f1[1] * t1 + f1[2] * t2;
+				c[0] = f1[0] * t0 - f1[1] * t1 + f1[2] * t2;
 
-				// solve the cubic equation; there can be 1 to 3 roots ...
-				Eigen::Matrix<double, 4, 1> polynomial;
-				for (auto i = 0; i < 4; ++i)
-					polynomial(i) = c[i];
-				Eigen::PolynomialSolver<double, 3> psolve(polynomial);
+				// n = real_roots.size();
+				int n = solveCubic( coeffs, roots );
 
-				std::vector<double> real_roots;
-				psolve.realRoots(real_roots);
-
-				n = real_roots.size();
 				if (n < 1 || n > 3)
 					return false;
+				
+				std::vector<double> real_roots;
+				for(int i = 0; i < n; i++)
+					real_roots[i] = r[i];
 
 				double f[8];
 				for (const double &root : real_roots)
