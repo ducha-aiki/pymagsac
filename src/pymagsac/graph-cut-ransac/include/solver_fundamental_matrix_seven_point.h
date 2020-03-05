@@ -32,7 +32,6 @@
 // Please contact the author of this library if you have any questions.
 // Author: Daniel Barath (barath.daniel@sztaki.mta.hu)
 #pragma once
-#include <iostream>
 #include "solver_engine.h"
 #include "fundamental_estimator.h"
 #include "mathfunc.h"
@@ -195,10 +194,7 @@ namespace gcransac
 
 				c[0] = f1[0] * t0 - f1[1] * t1 + f1[2] * t2;
 
-                //std::cout<<"c[0] "<<c[0]<<std::endl;
-                //std::cout<<"before solve cubic"<<std::endl;
 				n = solveCubic( coeffs, roots );
-                //std::cout<<"after solve cubic"<<std::endl;
 
 				if (n < 1 || n > 3)
 					return false;
@@ -206,7 +202,6 @@ namespace gcransac
 				std::vector<double> real_roots(n);
 				for(i = 0; i < n; i++)
 					real_roots[i] = r[i];
-                //std::cout<<"after copy cubic"<<std::endl;
 
 				double f[8];
 				for (const double &root : real_roots)
