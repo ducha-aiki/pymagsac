@@ -83,7 +83,7 @@ py::tuple findHomography(py::array_t<double>  x1y1_,
     if (DIM != 2) {
         throw std::invalid_argument( "x1y1 should be an array with dims [n,2], n>=4" );
     }
-    if (NUM_TENTS < 7) {
+    if (NUM_TENTS < 4) {
         throw std::invalid_argument( "x1y1 should be an array with dims [n,2], n>=4");
     }
     py::buffer_info buf1a = x2y2_.request();

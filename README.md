@@ -47,7 +47,7 @@ See also this [notebook](examples/example.ipynb)
 - Python 3
 - CMake 2.8.12 or higher
 - OpenCV 3.4
-- A modern compiler with C++11 support
+- A modern compiler with C++14 support
 
 
 # Acknowledgements
