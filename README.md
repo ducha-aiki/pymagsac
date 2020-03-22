@@ -5,6 +5,17 @@ Daniel Barath, Jana Noskova and Jiri Matas; MAGSAC: Marginalizing sample consens
 
 https://github.com/danini/magsac -- main repo. 
 
+
+# Performance
+
+Magsac is the state of the art according to the recent study Yin et.al."[Image Matching across Wide Baselines: From Paper to Practice](https://arxiv.org/abs/2003.01587.pdf)", 2020.
+
+![IMW-benchmark](img/ransacs.png)
+
+
+![IMW-Challenge](img/ransacs2.png)
+
+
 # Installation
 
 To build and install `python_cpp_example`, clone or download this repository and then, from within the repository, run:
