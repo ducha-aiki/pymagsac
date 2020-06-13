@@ -32,10 +32,9 @@
 // Please contact the author of this library if you have any questions.
 // Author: Daniel Barath (barath.daniel@sztaki.mta.hu)
 #pragma once
-#include <opencv2/core.hpp>
 #include "solver_engine.h"
 #include "fundamental_estimator.h"
-#include "ImathRoots.h"
+#include "mathfunc.h"
 
 namespace gcransac
 {
@@ -87,8 +86,8 @@ namespace gcransac
 				const double *data_ptr = reinterpret_cast<double *>(data_.data);
 				const int cols = data_.cols;
 				double c[4], r[3] = {0};
-				Mat coeffs( 1, 4, CV_64F, c );
-				Mat roots( 1, 3, CV_64F, r );
+				cv::Mat coeffs( 1, 4, CV_64F, c );
+				cv::Mat roots( 1, 3, CV_64F, r );
 				double t0, t1, t2;
 				int i, n;
 
@@ -195,14 +194,13 @@ namespace gcransac
 
 				c[0] = f1[0] * t0 - f1[1] * t1 + f1[2] * t2;
 
-				// n = real_roots.size();
-				int n = solveCubic( coeffs, roots );
+				n = solveCubic( coeffs, roots );
 
 				if (n < 1 || n > 3)
 					return false;
 				
-				std::vector<double> real_roots;
-				for(int i = 0; i < n; i++)
+				std::vector<double> real_roots(n);
+				for(i = 0; i < n; i++)
 					real_roots[i] = r[i];
 
 				double f[8];
