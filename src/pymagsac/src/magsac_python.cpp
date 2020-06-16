@@ -80,8 +80,8 @@ int findEssentialMatrix_(std::vector<double>& srcPts,
                            std::vector<double>& dstPts,
                            std::vector<bool>& inliers,
                            std::vector<double>& E,
-                           std::vector<double>& intrinsics_src;
-                           std::vector<double>& intrinsics_dst;
+                           std::vector<double>& intrinsics_src,
+                           std::vector<double>& intrinsics_dst,
                            double sigma_max,
                            double conf,
                            int max_iters,
