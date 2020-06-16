@@ -78,7 +78,8 @@ py::tuple findEssentialMatrix(py::array_t<double>  x1y1_,
                                 double conf,
                                 int max_iters,
                                 int partition_num,
-                                int core_num) {
+                                int core_num,
+                                int minimum_inlier_ratio_in_validity_check) {
     py::buffer_info buf1 = x1y1_.request();
     size_t NUM_TENTS = buf1.shape[0];
     size_t DIM = buf1.shape[1];
@@ -142,7 +143,8 @@ py::tuple findEssentialMatrix(py::array_t<double>  x1y1_,
                            conf,
                            max_iters,
                            partition_num,
-                           core_num);
+                           core_num,
+                           minimum_inlier_ratio_in_validity_check);
     
     py::array_t<bool> inliers_ = py::array_t<bool>(NUM_TENTS);
     py::buffer_info buf3 = inliers_.request();
@@ -255,7 +257,8 @@ PYBIND11_PLUGIN(pymagsac) {
           py::arg("conf") = 0.99,
           py::arg("max_iters") = 10000,
           py::arg("partition_num") = 2,
-          py::arg("core_num") = 1);
+          py::arg("core_num") = 1),
+          py::arg("minimum_inlier_ratio_in_validity_check") = 0.1;
     
 
   m.def("findHomography", &findHomography, R"doc(some doc)doc",

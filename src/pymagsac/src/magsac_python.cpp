@@ -86,12 +86,13 @@ int findEssentialMatrix_(std::vector<double>& srcPts,
                            double conf,
                            int max_iters,
                            int partition_num,
-                           int core_num = 1)
+                           int core_num = 1,
+                           int minimum_inlier_ratio_in_validity_check = 0.1)
 {
     
     magsac::utils::DefaultEssentialMatrixEstimator estimator(Eigen::Map<Eigen::Matrix3d>(intrinsics_src.data()),
                                                             Eigen::Map<Eigen::Matrix3d>(intrinsics_dst.data()),
-                                                            0.1); // The robust homography estimator class containing the
+                                                            minimum_inlier_ratio_in_validity_check); // The robust homography estimator class containing the
     gcransac::EssentialMatrix model; // The estimated model
     
     MAGSAC<cv::Mat, magsac::utils::DefaultEssentialMatrixEstimator> magsac;
