@@ -81,13 +81,18 @@ namespace gcransac
 				return _MinimalSolverEngine::sampleSize();
 			}
 
+			// A flag deciding if the points can be weighted when the non-minimal fitting is applied 
+			static constexpr bool isWeightingApplicable() {
+				return true;
+			}
+
 			// The size of a sample when doing inner RANSAC on a non-minimal sample
-			inline size_t inlierLimit() const {
+			OLGA_INLINE size_t inlierLimit() const {
 				return 7 * sampleSize();
 			}
 
 			// Estimating the model from a minimal sample
-			inline bool estimateModel(
+			OLGA_INLINE bool estimateModel(
 				const cv::Mat& data_, // The data points
 				const size_t *sample_, // The sample usd for the estimation
 				std::vector<Model>* models_) const // The estimated model parameters
@@ -99,7 +104,7 @@ namespace gcransac
 			}
 
 			// Estimating the model from a non-minimal sample
-			inline bool estimateModelNonminimal(const cv::Mat& data_, // The data points
+			OLGA_INLINE bool estimateModelNonminimal(const cv::Mat& data_, // The data points
 				const size_t *sample_, // The sample used for the estimation
 				const size_t &sample_number_, // The size of a minimal sample
 				std::vector<Model>* models_,
@@ -138,21 +143,21 @@ namespace gcransac
 				return true;
 			}
 
-			inline double squaredResidual(const cv::Mat& point_,
+			OLGA_INLINE double squaredResidual(const cv::Mat& point_,
 				const Model& model_) const
 			{
 				return squaredResidual(point_, model_.descriptor);
 			}
 
-			inline double squaredResidual(const cv::Mat& point_,
+			OLGA_INLINE double squaredResidual(const cv::Mat& point_,
 				const Eigen::MatrixXd& descriptor_) const
 			{
 				const double* s = reinterpret_cast<double *>(point_.data);
 
-				const double x1 = *s;
-				const double y1 = *(s + 1);
-				const double x2 = *(s + 2);
-				const double y2 = *(s + 3);
+				const double &x1 = *s,
+					&y1 = *(s + 1),
+					&x2 = *(s + 2),
+					&y2 = *(s + 3);
 
 				const double t1 = descriptor_(0, 0) * x1 + descriptor_(0, 1) * y1 + descriptor_(0, 2);
 				const double t2 = descriptor_(1, 0) * x1 + descriptor_(1, 1) * y1 + descriptor_(1, 2);
@@ -164,19 +169,19 @@ namespace gcransac
 				return d1 * d1 + d2 * d2;
 			}
 
-			inline double residual(const cv::Mat& point_,
+			OLGA_INLINE double residual(const cv::Mat& point_,
 				const Model& model_) const
 			{
 				return residual(point_, model_.descriptor);
 			}
 
-			inline double residual(const cv::Mat& point_,
+			OLGA_INLINE double residual(const cv::Mat& point_,
 				const Eigen::MatrixXd& descriptor_) const
 			{
 				return sqrt(squaredResidual(point_, descriptor_));
 			}
 
-			inline bool normalizePoints(
+			OLGA_INLINE bool normalizePoints(
 				const cv::Mat& data_, // The data points
 				const size_t *sample_, // The points to which the model will be fit
 				const size_t &sample_number_,// The number of points
@@ -269,6 +274,54 @@ namespace gcransac
 				normalizing_transform_destination_ << ratio_dst, 0, -ratio_dst * mass_point_dst[0],
 					0, ratio_dst, -ratio_dst * mass_point_dst[1],
 					0, 0, 1;
+				return true;
+			}
+
+			// Calculates the cross-product of two vectors
+			OLGA_INLINE void cross_product(
+				Eigen::Vector3d &result_,
+				const double *vector1_,
+				const double *vector2_,
+				const unsigned int st_) const
+			{
+				result_[0] = vector1_[st_] - vector2_[st_];
+				result_[1] = vector2_[0] - vector1_[0];
+				result_[2] = vector1_[0] * vector2_[st_] - vector1_[st_] * vector2_[0];
+			}
+
+			// A function to decide if the selected sample is degenerate or not
+			// before calculating the model parameters
+			OLGA_INLINE bool isValidSample(
+				const cv::Mat& data_, // All data points
+				const size_t *sample_) const // The indices of the selected points
+			{
+				// The size of a minimal sample
+				constexpr size_t sample_size = sampleSize();
+
+				// Check oriented constraints
+				Eigen::Vector3d p, q;
+
+				const double *a = reinterpret_cast<const double *>(data_.row(sample_[0]).data),
+					*b = reinterpret_cast<const double *>(data_.row(sample_[1]).data),
+					*c = reinterpret_cast<const double *>(data_.row(sample_[2]).data),
+					*d = reinterpret_cast<const double *>(data_.row(sample_[3]).data);
+
+				cross_product(p, a, b, 1);
+				cross_product(q, a + 2, b + 2, 1);
+
+				if ((p[0] * c[0] + p[1] * c[1] + p[2])*(q[0] * c[2] + q[1] * c[3] + q[2]) < 0)
+					return false;
+				if ((p[0] * d[0] + p[1] * d[1] + p[2])*(q[0] * d[2] + q[1] * d[3] + q[2]) < 0)
+					return false;
+
+				cross_product(p, c, d, 1);
+				cross_product(q, c + 2, d + 2, 1);
+
+				if ((p[0] * a[0] + p[1] * a[1] + p[2])*(q[0] * a[2] + q[1] * a[3] + q[2]) < 0)
+					return false;
+				if ((p[0] * b[0] + p[1] * b[1] + p[2])*(q[0] * b[2] + q[1] * b[3] + q[2]) < 0)
+					return false;
+
 				return true;
 			}
 		};

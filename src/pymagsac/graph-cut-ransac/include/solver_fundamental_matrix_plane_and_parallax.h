@@ -33,8 +33,10 @@
 // Author: Daniel Barath (barath.daniel@sztaki.mta.hu)
 #pragma once
 
+#include <iostream>
+
 #include "solver_engine.h"
-#include "homography_estimator.h"
+#include "fundamental_estimator.h"
 
 namespace gcransac
 {
@@ -43,32 +45,42 @@ namespace gcransac
 		namespace solver
 		{
 			// This is the estimator class for estimating a homography matrix between two images. A model estimation method and error calculation method are implemented
-			class HomographyFourPointSolver : public SolverEngine
+			class FundamentalMatrixPlaneParallaxSolver : public SolverEngine
 			{
+			protected:
+				const Eigen::Matrix3d *homography;
+				bool is_homography_set;
+
 			public:
-				HomographyFourPointSolver()
+				FundamentalMatrixPlaneParallaxSolver(const Eigen::Matrix3d *homography_ = nullptr) :
+					is_homography_set(false),
+					homography(homography_)
 				{
 				}
 
-				~HomographyFourPointSolver()
+				~FundamentalMatrixPlaneParallaxSolver()
 				{
+				}
+
+				void setHomography(const Eigen::Matrix3d *homography_)
+				{
+					is_homography_set = true;
+					homography = homography_;
 				}
 
 				// Determines if there is a chance of returning multiple models
-				// the function 'estimateModel' is applied.
+				// when function 'estimateModel' is applied.
 				static constexpr bool returnMultipleModels()
 				{
-					return false;
+					return true;
 				}
-				
+
 				// The minimum number of points required for the estimation
 				static constexpr size_t sampleSize()
 				{
-					return 4;
+					return 2;
 				}
 
-				// Estimate the model parameters from the given point sample
-				// using weighted fitting if possible.
 				OLGA_INLINE bool estimateModel(
 					const cv::Mat& data_, // The set of data points
 					const size_t *sample_, // The sample used for the estimation
@@ -77,78 +89,63 @@ namespace gcransac
 					const double *weights_ = nullptr) const; // The weight for each point
 			};
 
-			OLGA_INLINE bool HomographyFourPointSolver::estimateModel(
+			OLGA_INLINE bool FundamentalMatrixPlaneParallaxSolver::estimateModel(
 				const cv::Mat& data_,
 				const size_t *sample_,
 				size_t sample_number_,
 				std::vector<Model> &models_,
 				const double *weights_) const
 			{
-				constexpr size_t equation_number = 2;
-				const size_t row_number = equation_number * sample_number_;
-				Eigen::MatrixXd coefficients(row_number, 8);
-				Eigen::MatrixXd inhomogeneous(row_number, 1);
-
-				constexpr size_t columns = 4;
-				const double *data_ptr = reinterpret_cast<double *>(data_.data);
-				size_t row_idx = 0;
-				double weight = 1.0;
-
-				for (size_t i = 0; i < sample_number_; ++i)
+				// Check if the required homography has been set
+				if (!is_homography_set)
 				{
-					const size_t idx = 
-						sample_ == nullptr ? i : sample_[i];
-
-					const double *point_ptr = 
-						data_ptr + idx * columns;
-
-					const double
-						&x1 = point_ptr[0],
-						&y1 = point_ptr[1],
-						&x2 = point_ptr[2],
-						&y2 = point_ptr[3];
-
-					if (weights_ != nullptr)
-						weight = weights_[idx];
-
-					const double
-						minus_weight_times_x1 = -weight * x1,
-						minus_weight_times_y1 = -weight * y1,
-						weight_times_x2 = weight * x2,
-						weight_times_y2 = weight * y2;
-
-
-					coefficients(row_idx, 0) = minus_weight_times_x1;
-					coefficients(row_idx, 1) = minus_weight_times_y1;
-					coefficients(row_idx, 2) = -weight;
-					coefficients(row_idx, 3) = 0;
-					coefficients(row_idx, 4) = 0;
-					coefficients(row_idx, 5) = 0;
-					coefficients(row_idx, 6) = weight_times_x2 * x1;
-					coefficients(row_idx, 7) = weight_times_x2 * y1;
-					inhomogeneous(row_idx) = -weight_times_x2;
-					++row_idx;
-
-					coefficients(row_idx, 0) = 0;
-					coefficients(row_idx, 1) = 0;
-					coefficients(row_idx, 2) = 0;
-					coefficients(row_idx, 3) = minus_weight_times_x1;
-					coefficients(row_idx, 4) = minus_weight_times_y1;
-					coefficients(row_idx, 5) = -weight;
-					coefficients(row_idx, 6) = weight_times_y2 * x1;
-					coefficients(row_idx, 7) = weight_times_y2 * y1;
-					inhomogeneous(row_idx) = -weight_times_y2;
-					++row_idx;
+					fprintf(stderr, "The homography has not been set when applying the plane-and-parallax fundamental matrix estimation.\n");
+					return false;
 				}
 
-				Eigen::Matrix<double, 8, 1> h =
-					coefficients.colPivHouseholderQr().solve(inhomogeneous);
+				Eigen::Vector3d source_point_1, // First point in the first image
+					source_point_2, // The second point in the first image
+					destination_point_1, // The first point in the second image
+					destination_point_2; // The second point in the second image
 
-				Homography model;
-				model.descriptor << h(0), h(1), h(2),
-					h(3), h(4), h(5),
-					h(6), h(7), 1.0;
-				models_.emplace_back(model);
+				// The indices of the points
+				const size_t &point_1_idx = sample_[0],
+					&point_2_idx = sample_[1];
+
+				// The pointers of the points
+				const double * point_1_ptr = reinterpret_cast<double *>(data_.data) + point_1_idx * data_.cols;
+				const double * point_2_ptr = reinterpret_cast<double *>(data_.data) + point_2_idx * data_.cols;
+
+				source_point_1 << point_1_ptr[0], point_1_ptr[1], 1;
+				destination_point_1 << point_1_ptr[2], point_1_ptr[3], 1;
+				source_point_2 << point_2_ptr[0], point_2_ptr[1], 1;
+				destination_point_2 << point_2_ptr[2], point_2_ptr[3], 1;
+
+				// Projecting the points by the homography matrix
+				const Eigen::Vector3d projected_point_1 = *homography * source_point_1,
+					projected_point_2 = *homography * source_point_2;
+
+				// Calculating the parameters of the lines between the projected and original points
+				const Eigen::Vector3d line_1 = projected_point_1.cross(destination_point_1),
+					line_2 = projected_point_2.cross(destination_point_2);
+
+				// Estimating the epipole
+				const Eigen::Vector3d epipole = line_1.cross(line_2);
+
+				// There is no intersection
+				if (std::abs(epipole(2)) < std::numeric_limits<double>::epsilon())
+					return false;
+
+				// Calculate the cross-product matrix of the epipole
+				Eigen::Matrix3d epipolar_cross;
+				epipolar_cross << 0, -epipole(2), epipole(1),
+					epipole(2), 0, -epipole(0),
+					-epipole(1), epipole(0), 0;
+
+				// Calculate the fundamental matrix
+				FundamentalMatrix model;
+				model.descriptor = epipolar_cross * *homography;
+				models_.push_back(model);
 				return true;
 			}
 		}

@@ -36,9 +36,9 @@
 #include "GCoptimization.h"
 #include "sampler.h"
 #include "model.h"
-#include "types.h"
+#include "settings.h"
+#include "statistics.h"
 #include "scoring_function.h"
-#include "neighborhood_graph.h"
 
 namespace gcransac
 {
@@ -95,7 +95,7 @@ namespace gcransac
 
 		Graph<double, double, double> *graph; // The graph for graph-cut
 
-		inline bool sample(const std::vector<size_t> &pool_,
+		OLGA_INLINE bool sample(const std::vector<size_t> &pool_,
 			size_t sample_number_,
 			size_t *sample_,
 			bool local_optimization = false);
@@ -131,7 +131,8 @@ namespace gcransac
 			const _ModelEstimator &estimator_, // The model estimator
 			const double threshold_, // The inlier-outlier threshold
 			std::vector<size_t> &inliers_, // The resulting inlier set
-			Model &model_); // The estimated model
+			Model &model_, // The estimated model
+			const bool use_weighting_ = true); // Use iteratively re-weighted least-squares
 	};
 
 	// Computes the desired iteration number for RANSAC w.r.t. to the current inlier number
@@ -238,12 +239,21 @@ namespace gcransac
 					current_sample.get())) // The current sample
 					continue;
 
+				// Check if the selected sample is valid before estimating the model
+				// parameters which usually takes more time. 
+				if (!estimator_.isValidSample(points_, // All points
+					current_sample.get())) // The current sample
+					continue;
+
 				// Estimate the model parameters using the current sample
 				if (estimator_.estimateModel(points_,  // All points
 					current_sample.get(), // The current sample
 					&models)) // The estimated model parameters
 					break;
 			}
+
+			// Increase the iteration number by the number of unsuccessful model generations as well.
+			statistics.iteration_number += unsuccessful_model_generations - 1;
 
 			// Select the so-far-the-best from the estimated models
 			for (auto &model : models)
@@ -257,13 +267,27 @@ namespace gcransac
 					so_far_the_best_score, // The score of the current so-far-the-best model
 					true); // Flag to decide if the inliers are needed
 
+				bool is_model_updated = false;
+
 				// Store the model of its score is higher than that of the previous best
 				if (so_far_the_best_score < score && // Comparing the so-far-the-best model's score and current model's score
 					estimator_.isValidModel(model, // The current model parameters
 						points_, // All input points
 						temp_inner_inliers[inl_offset], // The inliers of the current model
-						truncated_threshold)) // The truncated inlier-outlier threshold
+						current_sample.get(), // The minimal sample initializing the model
+						truncated_threshold, // The truncated inlier-outlier threshold
+						is_model_updated))
 				{
+					// Get the inliers and the score of the non-optimized model
+					if (is_model_updated)
+						score = scoring_function->getScore(points_, // All points
+							model, // The current model parameters
+							estimator_, // The estimator 
+							settings.threshold, // The current threshold
+							temp_inner_inliers[inl_offset], // The current inlier set
+							so_far_the_best_score, // The score of the current so-far-the-best model
+							true); // Flag to decide if the inliers are needed
+
 					inl_offset = (inl_offset + 1) % 2;
 					so_far_the_best_model = model; // The new so-far-the-best model
 					so_far_the_best_score = score; // The new so-far-the-best model's score
@@ -344,6 +368,9 @@ namespace gcransac
 		// Recalculate the score if needed (i.e. there is some inconstistency in
 		// in the number of inliers stored and calculated).
 		if (temp_inner_inliers[inl_offset].size() != so_far_the_best_score.inlier_number)
+			inl_offset = (inl_offset + 1) % 2;
+
+		if (temp_inner_inliers[inl_offset].size() != so_far_the_best_score.inlier_number)
 			Score score = scoring_function->getScore(points_, // All points
 				so_far_the_best_model, // Best model parameters
 				estimator_, // The estimator
@@ -351,9 +378,10 @@ namespace gcransac
 				temp_inner_inliers[inl_offset]); // The current inliers
 
 		// Apply iteration least-squares fitting to get the final model parameters if needed
+		bool iterative_refitting_applied = false;
 		if (settings.do_final_iterated_least_squares)
 		{
-			Model model;
+			Model model = so_far_the_best_model; // The model which is re-estimated by iteratively re-weighted least-squares
 			bool success = iteratedLeastSquaresFitting(
 				points_, // The input data points
 				estimator_, // The model estimator
@@ -362,9 +390,24 @@ namespace gcransac
 				model); // The estimated model
 
 			if (success)
-				so_far_the_best_model.descriptor = model.descriptor;
+			{
+				std::vector<size_t> tmp_inliers;
+				Score score = scoring_function->getScore(points_, // All points
+					model, // Best model parameters
+					estimator_, // The estimator
+					settings.threshold, // The inlier-outlier threshold
+					tmp_inliers); // The current inliers
+
+				if (so_far_the_best_score < score)
+				{
+					iterative_refitting_applied = true;
+					so_far_the_best_model.descriptor = model.descriptor;
+					tmp_inliers.swap(temp_inner_inliers[inl_offset]);
+				}
+			}
 		}
-		else // Otherwise, do only one least-squares fitting on all of the inliers
+		
+		if (!iterative_refitting_applied) // Otherwise, do only one least-squares fitting on all of the inliers
 		{
 			// Estimate the final model using the full inlier set
 			std::vector<Model> models;
@@ -392,7 +435,8 @@ namespace gcransac
 		const _ModelEstimator &estimator_,
 		const double threshold_,
 		std::vector<size_t> &inliers_,
-		Model &model_)
+		Model &model_,
+		const bool use_weighting_)
 	{
 		const size_t sample_size = estimator_.sampleSize(); // The minimal sample size
 		if (inliers_.size() <= sample_size) // Return if there are not enough points
@@ -402,16 +446,45 @@ namespace gcransac
 		std::vector<size_t> tmp_inliers; // Inliers of the current model
 
 		// Iterated least-squares model fitting
+		std::unique_ptr<double []> weights = std::make_unique<double []>(points_.rows);
 		Score best_score; // The score of the best estimated model
 		while (++iterations < settings.max_least_squares_iterations)
 		{
 			std::vector<Model> models; // Estimated models
 
-			// Estimate the model from the current inlier set
-			estimator_.estimateModelNonminimal(points_,
-				&(inliers_)[0], // The current inliers
-				inliers_.size(), // The number of inliers
-				&models); // The estimated model parameters
+			// Calculate the weights if iteratively re-weighted least-squares is used			
+			if (_ModelEstimator::isWeightingApplicable() && // The weighted is applied only if the model estimator can handles it, and
+				use_weighting_) // the user wants to apply it.
+			{
+				// Calculate Tukey bisquare weights of the inliers
+				for (size_t inlier_idx = 0; inlier_idx < inliers_.size(); ++inlier_idx)
+				{
+					// The real index of the current inlier
+					const size_t &point_idx = inliers_[inlier_idx];
+
+					// The squares residual of the current inlier
+					const double squared_residual = estimator_.squaredResidual(points_.row(point_idx), model_);
+
+					// Calculate the Tukey bisquare weights
+					const double weight = MAX(0.0, 1.0 - squared_residual / squared_truncated_threshold);
+					weights[point_idx] = weight * weight;
+				}
+
+				// Estimate the model from the current inlier set
+				estimator_.estimateModelNonminimal(points_,
+					&(inliers_)[0], // The current inliers
+					inliers_.size(), // The number of inliers
+					&models, // The estimated model parameters
+					weights.get()); // The weights used in the weighted least-squares fitting
+			}
+			else
+			{
+				// Estimate the model from the current inlier set
+				estimator_.estimateModelNonminimal(points_,
+					&(inliers_)[0], // The current inliers
+					inliers_.size(), // The number of inliers
+					&models); // The estimated model parameters
+			}
 
 			if (models.size() == 0) // If there is no model estimated, interrupt the procedure
 				break;
@@ -431,7 +504,7 @@ namespace gcransac
 
 				// Interrupt the procedure if the inlier number has not changed.
 				// Therefore, the previous and current model parameters are likely the same.
-				if (score.inlier_number == inliers_.size())
+				if (score.inlier_number <= inliers_.size())
 					break;
 
 				// Update the output model
@@ -460,7 +533,7 @@ namespace gcransac
 
 					// Do not test the model if the inlier number has not changed.
 					// Therefore, the previous and current model parameters are likely the same.
-					if (score.inlier_number == inliers_.size())
+					if (score.inlier_number <= inliers_.size())
 						continue;
 
 					// Update the model if its score is higher than that of the current best
@@ -484,7 +557,7 @@ namespace gcransac
 	}
 
 	template <class _ModelEstimator, class _NeighborhoodGraph, class _ScoringFunction>
-	inline bool GCRANSAC<_ModelEstimator, _NeighborhoodGraph, _ScoringFunction>::sample(
+	OLGA_INLINE bool GCRANSAC<_ModelEstimator, _NeighborhoodGraph, _ScoringFunction>::sample(
 		const std::vector<size_t> &pool_, // The pool if indices determining which point can be selected
 		size_t sample_number_,
 		size_t *sample_,
@@ -640,30 +713,38 @@ namespace gcransac
 		std::vector<size_t> &inliers_,
 		double &energy_)
 	{
+		const size_t point_number = points_.rows;
+
 		// Initializing the problem graph for the graph-cut algorithm.
 		Energy<double, double, double> *problem_graph =
-			new Energy<double, double, double>(points_.rows, // The number of vertices
+			new Energy<double, double, double>(point_number, // The number of vertices
 				neighbor_number_, // The number of edges
 				NULL);
 
 		// Add a vertex for each point
-		for (auto i = 0; i < points_.rows; ++i)
+		for (auto i = 0; i < point_number; ++i)
 			problem_graph->add_node();
 
 		// The distance and energy for each point
 		double tmp_squared_distance,
 			tmp_energy;
+		const double squared_truncated_threshold = threshold_ * threshold_ * 9 / 4;
+		const double one_minus_lambda = 1.0 - lambda_;
 
 		// Estimate the vertex capacities
-		std::vector<double> squared_residuals(points_.rows);
-		for (size_t i = 0; i < points_.rows; ++i)
+		for (size_t i = 0; i < point_number; ++i)
 		{
 			tmp_squared_distance = estimator_.squaredResidual(points_.row(i),
 				model_.descriptor);
-			tmp_energy = 1.0 - tmp_squared_distance / squared_truncated_threshold;
-			problem_graph->add_term1(i, tmp_energy, 0);
-			squared_residuals[i] = tmp_squared_distance;
+			tmp_energy = 1 - tmp_squared_distance / squared_truncated_threshold;
+
+			if (tmp_squared_distance <= squared_truncated_threshold)
+				problem_graph->add_term1(i, one_minus_lambda * tmp_energy, 0);
+			else
+				problem_graph->add_term1(i, 0, one_minus_lambda * (1 - tmp_energy));
 		}
+
+		std::vector<std::vector<int>> used_edges(point_number, std::vector<int>(point_number, 0));
 
 		if (lambda_ > 0)
 		{
@@ -672,11 +753,22 @@ namespace gcransac
 			double e00, e01 = 1.0, e10 = 1.0, e11;
 
 			// Iterate through all points and set their edges
-			for (auto point_idx = 0; point_idx < points_.rows; ++point_idx)
+			for (auto point_idx = 0; point_idx < point_number; ++point_idx)
 			{
-				squared_distance_1 = squared_residuals[point_idx];
-				energy1 = MAX(0,
-					1.0 - squared_distance_1 / squared_truncated_threshold); // Truncated quadratic cost
+				squared_distance_1 = estimator_.squaredResidual(points_.row(point_idx),
+					model_.descriptor);
+				energy1 = squared_distance_1 / squared_truncated_threshold; // Truncated quadratic cost
+				if (energy1 > 1)
+					energy1 = 1;
+
+				int current_k = 0;
+				for (size_t actual_neighbor_idx : neighborhood_graph->getNeighbors(point_idx))
+				{
+					if (actual_neighbor_idx == point_idx || actual_neighbor_idx < 0)
+						break;
+
+					++current_k;
+				}
 
 				// Iterate through  all neighbors
 				for (size_t actual_neighbor_idx : neighborhood_graph->getNeighbors(point_idx))
@@ -684,13 +776,26 @@ namespace gcransac
 					if (actual_neighbor_idx == point_idx)
 						continue;
 
-					squared_distance_2 = squared_residuals[actual_neighbor_idx];
-					energy2 = MAX(0,
-						1.0 - squared_distance_2 / squared_truncated_threshold); // Truncated quadratic cost
+					if (actual_neighbor_idx == point_idx || actual_neighbor_idx < 0)
+						continue;
+
+					if (used_edges[actual_neighbor_idx][point_idx] == 1 ||
+						used_edges[point_idx][actual_neighbor_idx] == 1)
+						continue;
+
+					used_edges[actual_neighbor_idx][point_idx] = 1;
+					used_edges[point_idx][actual_neighbor_idx] = 1;
+
+					squared_distance_2 = estimator_.squaredResidual(points_.row(actual_neighbor_idx),
+						model_.descriptor);
+
+					energy2 = squared_distance_2 / squared_truncated_threshold; // Truncated quadratic cost
+					if (energy2 > 1)
+						energy2 = 1;
 					energy_sum = energy1 + energy2;
 
 					e00 = 0.5 * energy_sum;
-					e11 = 1.0 - 0.5 * energy_sum;
+					e11 = 0;
 
 					constexpr double e01_plus_e10 = 2.0; // e01 + e10 = 2
 					if (e00 + e11 > e01_plus_e10)
@@ -700,7 +805,7 @@ namespace gcransac
 						actual_neighbor_idx, // The current neighbor's index
 						e00 * lambda_,
 						lambda_, // = e01 * lambda
-						lambda_, // = e10 * lambda 
+						lambda_, // = e10 * lambda
 						e11 * lambda_);
 				}
 			}

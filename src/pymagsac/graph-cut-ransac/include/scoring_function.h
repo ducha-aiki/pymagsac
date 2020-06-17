@@ -40,9 +40,6 @@
 #include <unsupported/Eigen/Polynomials>
 #include <Eigen/Eigen>
 
-#include "estimator.h"
-#include "model.h"
-
 namespace gcransac
 {
 	/* RANSAC Scoring */
@@ -61,13 +58,12 @@ namespace gcransac
 
 		}
 
-		inline bool operator<(const Score& score_)
+		OLGA_INLINE bool operator<(const Score& score_)
 		{
-			return value < score_.value &&
-				inlier_number <= score_.inlier_number;
+			return value < score_.value;
 		}
 
-		inline bool operator>(const Score& score_)
+		OLGA_INLINE bool operator>(const Score& score_)
 		{
 			return *this > score_;
 		}
@@ -87,7 +83,7 @@ namespace gcransac
 
 		}
 
-		virtual inline Score getScore(const cv::Mat &points_, // The input data points
+		virtual OLGA_INLINE Score getScore(const cv::Mat &points_, // The input data points
 			Model &model_, // The current model parameters
 			const _ModelEstimator &estimator_, // The model estimator
 			const double threshold_, // The inlier-outlier threshold
@@ -135,7 +131,7 @@ namespace gcransac
 		}
 
 		// Return the score of a model w.r.t. the data points and the threshold
-		inline Score getScore(const cv::Mat &points_, // The input data points
+		OLGA_INLINE Score getScore(const cv::Mat &points_, // The input data points
 			Model &model_, // The current model parameters
 			const _ModelEstimator &estimator_, // The model estimator
 			const double threshold_, // The inlier-outlier threshold
@@ -165,7 +161,6 @@ namespace gcransac
 					++(score.inlier_number);
 					// Increase the score. The original truncated quadratic loss is as follows: 
 					// 1 - residual^2 / threshold^2. For RANSAC, -residual^2 is enough.
-					// score.value += squared_residual; // Truncated quadratic cost
 					score.value += 1.0 - squared_residual / squared_truncated_threshold; // Truncated quadratic cost
 				}
 

@@ -77,7 +77,7 @@ namespace gcransac
 				non_minimal_solver(std::make_shared<const _NonMinimalSolverEngine>()),
 				// The lower bound of the inlier ratio which is required to pass the validity test.
 				// It is clamped to be in interval [0, 1].
-				minimum_inlier_ratio_in_validity_check(std::min(std::max(minimum_inlier_ratio_in_validity_check_, 0.0), 1.0))
+				minimum_inlier_ratio_in_validity_check(std::clamp(minimum_inlier_ratio_in_validity_check_, 0.0, 1.0))
 			{}
 
 			~PerspectiveNPointEstimator() {}
@@ -92,12 +92,17 @@ namespace gcransac
 				return _MinimalSolverEngine::sampleSize();
 			}
 
+			// A flag deciding if the points can be weighted when the non-minimal fitting is applied 
+			static constexpr bool isWeightingApplicable() {
+				return false;
+			}
+
 			// The size of a sample when doing inner RANSAC on a non-minimal sample
-			inline size_t inlierLimit() const {
+			OLGA_INLINE size_t inlierLimit() const {
 				return 7 * sampleSize();
 			}
 
-			inline bool estimateModel(const cv::Mat& data,
+			OLGA_INLINE bool estimateModel(const cv::Mat& data,
 				const size_t *sample,
 				std::vector<Model>* models) const
 			{
@@ -111,29 +116,30 @@ namespace gcransac
 				return models->size() > 0;
 			}
 			
-			inline double squaredReprojectionError(const cv::Mat& point_,
+			OLGA_INLINE double squaredReprojectionError(const cv::Mat& point_,
 				const Eigen::Matrix<double, 3, 4>& descriptor_) const
 			{
 				const double* s = reinterpret_cast<double *>(point_.data);
-				const double u = *s,
-					v = *(s + 1),
-					x = *(s + 2),
-					y = *(s + 3),
-					z = *(s + 4);
+				const double 
+					&u = *s,
+					&v = *(s + 1),
+					&x = *(s + 2),
+					&y = *(s + 3),
+					&z = *(s + 4);
 
 				const double 
-					r11 = descriptor_(0, 0),
-					r12 = descriptor_(0, 1),
-					r13 = descriptor_(0, 2),
-					r21 = descriptor_(1, 0),
-					r22 = descriptor_(1, 1),
-					r23 = descriptor_(1, 2),
-					r31 = descriptor_(2, 0),
-					r32 = descriptor_(2, 1),
-					r33 = descriptor_(2, 2),
-					tx = descriptor_(0, 3),
-					ty = descriptor_(1, 3),
-					tz = descriptor_(2, 3);
+					&r11 = descriptor_(0, 0),
+					&r12 = descriptor_(0, 1),
+					&r13 = descriptor_(0, 2),
+					&r21 = descriptor_(1, 0),
+					&r22 = descriptor_(1, 1),
+					&r23 = descriptor_(1, 2),
+					&r31 = descriptor_(2, 0),
+					&r32 = descriptor_(2, 1),
+					&r33 = descriptor_(2, 2),
+					&tx = descriptor_(0, 3),
+					&ty = descriptor_(1, 3),
+					&tz = descriptor_(2, 3);
 				
 				const double px = r11 * x + r12 * y + r13 * z + tx,
 					py = r21 * x + r22 * y + r23 * z + ty,
@@ -148,13 +154,13 @@ namespace gcransac
 				return du * du + dv * dv;
 			}
 			
-			inline double squaredResidual(const cv::Mat& point_,
+			OLGA_INLINE double squaredResidual(const cv::Mat& point_,
 				const Model& model_) const
 			{
 				return squaredResidual(point_, model_.descriptor);
 			}
 
-			inline double squaredResidual(const cv::Mat& point_,
+			OLGA_INLINE double squaredResidual(const cv::Mat& point_,
 				const Eigen::MatrixXd& descriptor_) const
 			{
 				if (descriptor_.cols() != 4 || descriptor_.rows() != 3)
@@ -167,27 +173,29 @@ namespace gcransac
 				return squaredReprojectionError(point_, descriptor_);
 			}
 
-			inline double residual(const cv::Mat& point_,
+			OLGA_INLINE double residual(const cv::Mat& point_,
 				const Model& model_) const
 			{
 				return residual(point_, model_.descriptor);
 			}
 
-			inline double residual(const cv::Mat& point_,
+			OLGA_INLINE double residual(const cv::Mat& point_,
 				const Eigen::MatrixXd& descriptor_) const
 			{
 				return sqrt(squaredReprojectionError(point_, descriptor_));
 			}
 
-			inline bool isValidModel(const Model& model_,
+			OLGA_INLINE bool isValidModel(Model& model_,
 				const cv::Mat& data_,
 				const std::vector<size_t> &inliers_,
-				const double threshold_) const
+				const size_t *minimal_sample_,
+				const double threshold_,
+				bool &model_updated_) const
 			{
 				return true;
 			}
 
-			inline bool estimateModelNonminimal(
+			OLGA_INLINE bool estimateModelNonminimal(
 				const cv::Mat& data_,
 				const size_t *sample_,
 				const size_t &sample_number_,

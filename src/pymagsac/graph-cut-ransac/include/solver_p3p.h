@@ -70,7 +70,7 @@ namespace gcransac
 
 				// Estimate the model parameters from the given point sample
 				// using weighted fitting if possible.
-				inline bool estimateModel(
+				OLGA_INLINE bool estimateModel(
 					const cv::Mat& data_, // The set of data points
 					const size_t *sample_, // The sample used for the estimation
 					size_t sample_number_, // The size of the sample
@@ -172,7 +172,7 @@ namespace gcransac
 
 				// Calculate cot(alpha) needed for back-substitution.
 				for (size_t i = 0; i < roots.size(); i++) {
-					cos_theta[i] = std::min(std::max(roots[i], -1.0), 1.0);
+					cos_theta[i] = MIN(MAX(roots[i], -1.0), 1.0);
 					cot_alphas[i] = (-f_1 * p_1 / f_2 - cos_theta[i] * p_2 + d_12 * (*b)) /
 						(-f_1 * cos_theta[i] * p_2 / f_2 + p_1 - d_12);
 				}
@@ -230,7 +230,7 @@ namespace gcransac
 				translation = -rotation * translation;
 			}
 
-			inline bool P3PSolver::estimateModel(
+			OLGA_INLINE bool P3PSolver::estimateModel(
 				const cv::Mat& data_,
 				const size_t *sample_,
 				size_t sample_number_,

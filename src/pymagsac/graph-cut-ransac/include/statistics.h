@@ -34,46 +34,34 @@
 #pragma once
 
 #include <vector>
+#include <numeric>
 
-namespace gcransac 
+namespace gcransac
 {
-	namespace sampler
+	namespace utils
 	{
-		// Purely virtual class used for the sampling consensus methods (e.g. Ransac,
-		// Prosac, MLESac, etc.)
-		template <class _DataContainer, class _IndexType>
-		class Sampler
+		struct RANSACStatistics
 		{
-		protected:
-			// The pointer of the container consisting of the data points from which
-			// the neighborhood graph is constructed.
-			const _DataContainer * const container;
+			size_t graph_cut_number,
+				local_optimization_number,
+				iteration_number,
+				neighbor_number;
 
-			// A variable showing if the initialization was succesfull
-			bool initialized;
+			std::string main_sampler_name,
+				local_optimizer_sampler_name;
 
-		public:
-			explicit Sampler(const _DataContainer * const container_) :
-				container(container_)
-			{}
+			double processing_time;
 
-			virtual ~Sampler() {}
+			std::vector<size_t> inliers;
 
-			virtual const std::string getName() const = 0;
-
-			// Initializes any non-trivial variables and sets up sampler if
-			// necessary. Must be called before sample is called.
-			virtual bool initialize(const _DataContainer * const container_) = 0;
-
-			// Samples the input variable data and fills the std::vector subset with the
-			// samples.
-			OLGA_INLINE virtual bool sample(const std::vector<_IndexType> &pool_,
-				_IndexType * const subset_,
-				size_t sample_size_) = 0;
-
-			bool isInitialized()
+			RANSACStatistics() :
+				graph_cut_number(0),
+				local_optimization_number(0),
+				iteration_number(0),
+				neighbor_number(0),
+				processing_time(0.0)
 			{
-				return initialized;
+
 			}
 		};
 	}
