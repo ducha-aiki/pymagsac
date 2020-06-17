@@ -13,6 +13,7 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
                            std::vector<double>& dstPts,
                            std::vector<bool>& inliers,
                            std::vector<double>&F,
+						   bool use_magsac_plus_plus,
                            double sigma_max,
                            double conf,
                            int max_iters,
@@ -41,12 +42,14 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
     }
     gcransac::sampler::UniformSampler main_sampler(&points);
 
+	ModelScore score;
     bool success =  magsac.run(points, // The data points
                               conf, // The required confidence in the results
                               estimator, // The used estimator
                               main_sampler, // The sampler used for selecting minimal samples in each iteration
                               model, // The estimated model
-                              max_iters); // The number of iterations
+                              max_iters, // The number of iterations
+							  score); // The score of the estimated model
     inliers.resize(num_tents);
     if (!success) {
         for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
@@ -81,6 +84,7 @@ int findHomography_(std::vector<double>& srcPts,
                     std::vector<double>& dstPts,
                     std::vector<bool>& inliers,
                     std::vector<double>& H,
+					bool use_magsac_plus_plus,
                     double sigma_max,
                     double conf,
                     int max_iters,
@@ -92,10 +96,12 @@ int findHomography_(std::vector<double>& srcPts,
 
     MAGSAC<cv::Mat, magsac::utils::DefaultHomographyEstimator> magsac;
     magsac.setMaximumThreshold(sigma_max); // The maximum noise scale sigma allowed
-    magsac.setCoreNumber(partition_num); // The number of cores used to speed up sigma-consensus
+    magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
     magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
     magsac.setIterationLimit(max_iters);
     
+	ModelScore score;
+	
     int num_tents = srcPts.size()/2;
     cv::Mat points(num_tents, 4, CV_64F);
     for (int i = 0; i < num_tents; ++i) {
@@ -111,7 +117,8 @@ int findHomography_(std::vector<double>& srcPts,
                               estimator, // The used estimator
                               main_sampler, // The sampler used for selecting minimal samples in each iteration
                               model, // The estimated model
-                              max_iters); // The number of iterations
+                              max_iters, // The number of iterations
+							  score); // The score of the estimated model
     inliers.resize(num_tents);
     if (!success) {
         for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
