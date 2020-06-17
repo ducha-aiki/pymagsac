@@ -59,6 +59,11 @@ public:
 	{
 		reference_inlier_outlier_threshold = threshold_;
 	}
+	
+	double getReferenceThreshold()
+	{
+		return interrupting_threshold;
+	}
 
 	void applyPostProcessing(bool value_) 
 	{
