@@ -5,6 +5,36 @@ Daniel Barath, Jana Noskova and Jiri Matas; MAGSAC: Marginalizing sample consens
 
 https://github.com/danini/magsac -- main repo. 
 
+If you use the algorithm, please cite
+
+```
+@inproceedings{barath2019magsac,
+	author = {Barath, Daniel and Matas, Jiri and Noskova, Jana},
+	title = {MAGSAC: marginalizing sample consensus},
+	booktitle = {Conference on Computer Vision and Pattern Recognition},
+	year = {2019},
+}
+
+@inproceedings{barath2019magsacplusplus,
+	author = {Barath, Daniel and Noskova, Jana and Ivashechkin, Maksym and Matas, Jiri},
+	title = {MAGSAC++, a fast, reliable and accurate robust estimator},
+	booktitle = {arXiv preprint:1912.05909},
+	year = {2019},
+}
+```
+
+If you use it for fundamental matrix estimation with DEGENSAC turned on, please cite
+
+```
+@inproceedings{Chum2005,
+  author = {Chum, Ondrej and Werner, Tomas and Matas, Jiri},
+  title = {Two-View Geometry Estimation Unaffected by a Dominant Plane},
+  booktitle = {CVPR},
+  year = {2005},
+}
+```
+
+
 
 # Performance
 
