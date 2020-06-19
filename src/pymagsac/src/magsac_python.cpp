@@ -41,12 +41,14 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
     }
     gcransac::sampler::UniformSampler main_sampler(&points);
 
+    ModelScore score;
     bool success =  magsac.run(points, // The data points
                               conf, // The required confidence in the results
                               estimator, // The used estimator
                               main_sampler, // The sampler used for selecting minimal samples in each iteration
                               model, // The estimated model
-                              max_iters); // The number of iterations
+                              max_iters, // The number of iterations
+                              score); // The score of the estimated model
     inliers.resize(num_tents);
     if (!success) {
         for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
@@ -87,12 +89,14 @@ int findEssentialMatrix_(std::vector<double>& srcPts,
                            int max_iters,
                            int partition_num,
                            int core_num = 1,
-                           int minimum_inlier_ratio_in_validity_check = 0.1)
+                           double minimum_inlier_ratio_in_validity_check = 0.1,
+                           double normalizing_multiplier = 1e-3)
 {
     
     magsac::utils::DefaultEssentialMatrixEstimator estimator(Eigen::Map<Eigen::Matrix3d>(intrinsics_src.data()),
                                                             Eigen::Map<Eigen::Matrix3d>(intrinsics_dst.data()),
-                                                            minimum_inlier_ratio_in_validity_check); // The robust homography estimator class containing the
+                                                            minimum_inlier_ratio_in_validity_check
+                                                            ); // The robust homography estimator class containing the
     gcransac::EssentialMatrix model; // The estimated model
     
     MAGSAC<cv::Mat, magsac::utils::DefaultEssentialMatrixEstimator> magsac;
@@ -101,6 +105,7 @@ int findEssentialMatrix_(std::vector<double>& srcPts,
     magsac.setCoreNumber(core_num); // The number of cores used to speed up sigma-consensus
     magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
     magsac.setIterationLimit(max_iters);
+    magsac.setReferenceThreshold(magsac.getReferenceThreshold() * normalizing_multiplier);
     //magsac.setTerminationCriterion(MAGSAC<FundamentalMatrixEstimator, FundamentalMatrix>::TerminationCriterion::RansacCriterion,
     //    sigma_th); // Use the standard RANSAC termination criterion since the MAGSAC one is too pessimistic and, thus, runs too long sometimes
 
@@ -114,12 +119,14 @@ int findEssentialMatrix_(std::vector<double>& srcPts,
     }
     gcransac::sampler::UniformSampler main_sampler(&points);
 
+    ModelScore score;
     bool success =  magsac.run(points, // The data points
                               conf, // The required confidence in the results
                               estimator, // The used estimator
                               main_sampler, // The sampler used for selecting minimal samples in each iteration
                               model, // The estimated model
-                              max_iters); // The number of iterations
+                              max_iters, // The number of iterations
+                              score); // The score of the estimated model
     inliers.resize(num_tents);
     if (!success) {
         for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {
@@ -179,12 +186,14 @@ int findHomography_(std::vector<double>& srcPts,
     }
     gcransac::sampler::UniformSampler main_sampler(&points);
 
+    ModelScore score;
     bool success = magsac.run(points, // The data points
                               conf, // The required confidence in the results
                               estimator, // The used estimator
                               main_sampler, // The sampler used for selecting minimal samples in each iteration
                               model, // The estimated model
-                              max_iters); // The number of iterations
+                              max_iters, // The number of iterations
+                              score); // The score of the estimated model
     inliers.resize(num_tents);
     if (!success) {
         for (auto pt_idx = 0; pt_idx < points.rows; ++pt_idx) {

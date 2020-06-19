@@ -23,7 +23,9 @@ int findEssentialMatrix_(std::vector<double>& srcPts,
                            double conf = 0.99,
                            int max_iters = 10000,
                            int partition_num = 5,
-                           int core_num = 1);
+                           int core_num = 1,
+                           double minimum_inlier_ratio_in_validity_check = 0.1,
+                           double normalizing_multiplier = 1e-3);
 
                 
 int findHomography_(std::vector<double>& srcPts,

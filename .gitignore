@@ -2,6 +2,7 @@
 build
 docs/_build
 tests/bin
+dist/
 
 # Python
 *.egg-info
