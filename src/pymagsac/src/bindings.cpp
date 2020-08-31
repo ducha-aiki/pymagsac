@@ -13,7 +13,8 @@ py::tuple findFundamentalMatrix(py::array_t<double>  x1y1_,
                                 double sigma_th,
                                 double conf,
                                 int max_iters,
-                                int partition_num) {
+                                int partition_num,
+                                int core_num) {
     py::buffer_info buf1 = x1y1_.request();
     size_t NUM_TENTS = buf1.shape[0];
     size_t DIM = buf1.shape[1];
@@ -52,7 +53,8 @@ py::tuple findFundamentalMatrix(py::array_t<double>  x1y1_,
                            sigma_th,
                            conf,
                            max_iters,
-                           partition_num);
+                           partition_num,
+                           core_num);
     
     py::array_t<bool> inliers_ = py::array_t<bool>(NUM_TENTS);
     py::buffer_info buf3 = inliers_.request();
@@ -248,7 +250,8 @@ PYBIND11_PLUGIN(pymagsac) {
           py::arg("sigma_th") = 1.0,
           py::arg("conf") = 0.99,
           py::arg("max_iters") = 10000,
-          py::arg("partition_num") = 2);
+          py::arg("partition_num") = 2,
+          py::arg("core_num") = 1);
 
     m.def("findEssentialMatrix", &findEssentialMatrix, R"doc(some doc)doc",
           py::arg("x1y1"),
