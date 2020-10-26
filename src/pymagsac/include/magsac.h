@@ -60,6 +60,11 @@ public:
 		maximum_threshold = maximum_threshold_;
 	}
 
+    void setVersion(const Version magsac_version_)
+    {
+        magsac_version = magsac_version_;
+    }
+
 	// A function to set the inlier-outlier threshold used for speeding up the procedure
 	// and for determining the required number of iterations.
 	void setReferenceThreshold(const double threshold_)
@@ -96,7 +101,7 @@ public:
 	// Otherwise, the threads will act weirdly.
 	void setCoreNumber(size_t core_number_)
 	{
-		if (magsac_version == MAGSAC_PLUS_PLUS)
+		if (magsac_version == Version::MAGSAC_PLUS_PLUS)
 			fprintf(stderr, "Setting the core number for MAGSAC++ is deprecated.");
 		core_number = core_number_;
 	}
@@ -105,7 +110,7 @@ public:
 	// to speed up the procedure. In MAGSAC++, this parameter is not used.
 	void setPartitionNumber(size_t partition_number_)
 	{
-		if (magsac_version == MAGSAC_PLUS_PLUS)
+		if (magsac_version == Version::MAGSAC_PLUS_PLUS)
 			fprintf(stderr, "Setting the partition number for MAGSAC++ is deprecated.");
 		partition_number = partition_number_;
 	}

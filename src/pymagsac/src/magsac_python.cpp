@@ -24,6 +24,12 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
     gcransac::FundamentalMatrix model; // The estimated model
 
     MAGSAC<cv::Mat, magsac::utils::DefaultFundamentalMatrixEstimator> magsac;
+    if (!use_magsac_plus_plus) {
+        magsac.setVersion(magsac.Version::MAGSAC_ORIGINAL);
+    } else {
+        magsac.setVersion(magsac.Version::MAGSAC_PLUS_PLUS);
+    }
+
     magsac.setMaximumThreshold(sigma_max); // The maximum noise scale sigma allowed
     //magsac.setInterruptingThreshold(sigma_th / 3.0f); // The threshold used for speeding up the procedure
     if (!use_magsac_plus_plus) {
@@ -97,6 +103,12 @@ int findHomography_(std::vector<double>& srcPts,
     gcransac::Homography model; // The estimated model
 
     MAGSAC<cv::Mat, magsac::utils::DefaultHomographyEstimator> magsac;
+    if (!use_magsac_plus_plus) {
+        magsac.setVersion(magsac.Version::MAGSAC_ORIGINAL);
+    } else {
+        magsac.setVersion(magsac.Version::MAGSAC_PLUS_PLUS);
+    }
+
     magsac.setMaximumThreshold(sigma_max); // The maximum noise scale sigma allowed
     if(!use_magsac_plus_plus) {
         magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
