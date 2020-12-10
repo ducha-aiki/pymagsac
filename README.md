@@ -1,9 +1,8 @@
 # MAGSAC++'s Python Wrapper
 
-This repository contains an Python wrapper of [MAGSAC](https://arxiv.org/abs/1803.07469.pdf). 
-Daniel Barath, Jana Noskova and Jiri Matas; MAGSAC: Marginalizing sample consensus, CVPR 2019
+This repository contains an Python wrapper of [MAGSAC](https://arxiv.org/abs/1803.07469.pdf) and [MAGSAC++](https://openaccess.thecvf.com/content_CVPR_2020/papers/Barath_MAGSAC_a_Fast_Reliable_and_Accurate_Robust_Estimator_CVPR_2020_paper.pdf). 
 
-https://github.com/danini/magsac -- main repo. 
+The main repository is at https://github.com/danini/magsac
 
 If you use the algorithm, please cite
 
@@ -35,10 +34,13 @@ If you use it for fundamental matrix estimation with DEGENSAC turned on, please 
 ```
 
 
+# Performance of MAGSAC++
 
-# Performance
+MAGSAC++ is the state of the art according to "RANSAC in 2020" CVPR tutorial's [experiments](http://cmp.felk.cvut.cz/cvpr2020-ransac-tutorial/presentations/RANSAC-CVPR20-Mishkin.pdf).
 
-Magsac is the state of the art according to the recent study Yin et.al."[Image Matching across Wide Baselines: From Paper to Practice](https://arxiv.org/abs/2003.01587.pdf)", 2020.
+# Performance of MAGSAC
+
+MAGSAC is the state of the art according to the recent study Yin et.al."[Image Matching across Wide Baselines: From Paper to Practice](https://arxiv.org/abs/2003.01587.pdf)", 2020.
 
 ![IMW-benchmark](img/ransacs.png)
 
