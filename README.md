@@ -1,4 +1,4 @@
-##### This repo is deprecated! The Python wrapper is now merged to the main repo that you can find at [Link](https://github.com/danini/magsac).
+#### This repo is deprecated! The Python wrapper is now merged to the main repo that you can find at [Link](https://github.com/danini/magsac).
 
 # MAGSAC++'s Python Wrapper
 
