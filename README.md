@@ -1,3 +1,5 @@
+##### This repo is deprecated! The Python wrapper is now merged to the main repo that you can find at [Link](https://github.com/danini/magsac).
+
 # MAGSAC++'s Python Wrapper
 
 This repository contains an Python wrapper of [MAGSAC](https://arxiv.org/abs/1803.07469.pdf) and [MAGSAC++](https://openaccess.thecvf.com/content_CVPR_2020/papers/Barath_MAGSAC_a_Fast_Reliable_and_Accurate_Robust_Estimator_CVPR_2020_paper.pdf). 
