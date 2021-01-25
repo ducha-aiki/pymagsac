@@ -13,21 +13,29 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
                            std::vector<double>& dstPts,
                            std::vector<bool>& inliers,
                            std::vector<double>&F,
-						   bool use_magsac_plus_plus,
+                           bool use_magsac_plus_plus,
                            double sigma_max,
                            double conf,
                            int max_iters,
                            int partition_num)
 {
-    
+
     magsac::utils::DefaultFundamentalMatrixEstimator estimator(0.1); // The robust homography estimator class containing the
     gcransac::FundamentalMatrix model; // The estimated model
-    
+
     MAGSAC<cv::Mat, magsac::utils::DefaultFundamentalMatrixEstimator> magsac;
+    if (!use_magsac_plus_plus) {
+        magsac.setVersion(magsac.Version::MAGSAC_ORIGINAL);
+    } else {
+        magsac.setVersion(magsac.Version::MAGSAC_PLUS_PLUS);
+    }
+
     magsac.setMaximumThreshold(sigma_max); // The maximum noise scale sigma allowed
     //magsac.setInterruptingThreshold(sigma_th / 3.0f); // The threshold used for speeding up the procedure
-    magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
-    magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
+    if (!use_magsac_plus_plus) {
+        magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
+        magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
+    }
     magsac.setIterationLimit(max_iters);
     //magsac.setTerminationCriterion(MAGSAC<FundamentalMatrixEstimator, FundamentalMatrix>::TerminationCriterion::RansacCriterion,
     //    sigma_th); // Use the standard RANSAC termination criterion since the MAGSAC one is too pessimistic and, thus, runs too long sometimes
@@ -42,7 +50,7 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
     }
     gcransac::sampler::UniformSampler main_sampler(&points);
 
-	ModelScore score;
+    ModelScore score;
     bool success =  magsac.run(points, // The data points
                               conf, // The required confidence in the results
                               estimator, // The used estimator
@@ -69,7 +77,7 @@ int findFundamentalMatrix_(std::vector<double>& srcPts,
         inliers[pt_idx] = (bool)is_inlier;
         num_inliers+=is_inlier;
     }
-    
+
     F.resize(9);
     for (int i = 0; i < 3; i++){
         for (int j = 0; j < 3; j++){
@@ -95,13 +103,21 @@ int findHomography_(std::vector<double>& srcPts,
     gcransac::Homography model; // The estimated model
 
     MAGSAC<cv::Mat, magsac::utils::DefaultHomographyEstimator> magsac;
+    if (!use_magsac_plus_plus) {
+        magsac.setVersion(magsac.Version::MAGSAC_ORIGINAL);
+    } else {
+        magsac.setVersion(magsac.Version::MAGSAC_PLUS_PLUS);
+    }
+
     magsac.setMaximumThreshold(sigma_max); // The maximum noise scale sigma allowed
-    magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
-    magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
+    if(!use_magsac_plus_plus) {
+        magsac.setCoreNumber(1); // The number of cores used to speed up sigma-consensus
+        magsac.setPartitionNumber(partition_num); // The number partitions used for speeding up sigma consensus. As the value grows, the algorithm become slower and, usually, more accurate.
+    }
     magsac.setIterationLimit(max_iters);
-    
-	ModelScore score;
-	
+
+    ModelScore score;
+
     int num_tents = srcPts.size()/2;
     cv::Mat points(num_tents, 4, CV_64F);
     for (int i = 0; i < num_tents; ++i) {
@@ -139,9 +155,9 @@ int findHomography_(std::vector<double>& srcPts,
         inliers[pt_idx] = (bool)is_inlier;
         num_inliers+=is_inlier;
     }
-    
+
     H.resize(9);
-    
+
     for (int i = 0; i < 3; i++){
         for (int j = 0; j < 3; j++){
             H[i*3+j] = (double)model.descriptor(i,j);
